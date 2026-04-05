@@ -33,18 +33,24 @@ export default function Home() {
 
   const handleGoToMeds = () => {
     if (analysis && analysis.conditions.length > 0) {
-      // Map analysis of the top condition to medications
-      const medsList = getMedications(analysis.conditions[0].name);
-      setMeds(medsList);
+      // Aggregate treatments for ALL detected conditions
+      const allMeds = analysis.conditions.flatMap(condition => getMedications(condition.name));
+      // Filter for unique medications by name
+      const uniqueMeds = Array.from(new Map(allMeds.map(m => [m.name, m])).values());
+      
+      setMeds(uniqueMeds);
       setStage("MEDS");
     }
   };
 
   const handleGoToFinder = () => {
     if (meds.length > 0) {
-      // Find products for the first recommended medication
-      const productList = findMarketProducts(meds[0].name);
-      setProducts(productList);
+      // Aggregating product availability for ALL recommended medications
+      const allProducts = meds.flatMap(med => findMarketProducts(med.name));
+      // Filter for unique products (best price per platform/medication)
+      const uniqueProducts = Array.from(new Map(allProducts.map(p => [p.name + p.platform, p])).values());
+      
+      setProducts(uniqueProducts);
       setStage("FINDER");
     }
   };

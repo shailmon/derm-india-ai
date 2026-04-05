@@ -1,4 +1,4 @@
-import { AnalysisResult, Medication, ProductInfo } from "@/types";
+import { AnalysisResult, Condition, Medication, ProductInfo, Severity } from "@/types";
 
 /**
  * simulated "AI" logic based on the markdown files.
@@ -9,124 +9,149 @@ export async function analyzeSkin(text: string, image: File | null): Promise<Ana
   await new Promise(resolve => setTimeout(resolve, 3000));
 
   const lowerText = text.toLowerCase();
+  const conditions: Condition[] = [];
+  let severity: Severity = "Mild";
+  let severityReason = "Symptoms are currently mild. Maintaining a simple skincare routine and monitoring for changes is advised.";
 
-  // Basic keyword mapping based on the MD files logic
-  if (lowerText.includes("itch") || lowerText.includes("red") || lowerText.includes("patch")) {
-    return {
-      severity: "Moderate",
-      severityReason: "The presence of red itchy patches may indicate an inflammatory or fungal process that requires targeted treatment to prevent secondary bacterial infection.",
-      conditions: [
-        {
-          name: "Tinea Corporis (Ringworm)",
-          sources: ["Mayo Clinic", "DermNet NZ"],
-          indicators: [
-            "Pruritic (itchy) red circular rash",
-            "Clearer skin in the middle of the ring",
-            "Slightly raised, expanding borders"
-          ],
-          causes: "Fungal infection spread by skin-to-skin contact or contact with contaminated items (towels, clothing)."
-        },
-        {
-          name: "Contact Dermatitis",
-          sources: ["Cleveland Clinic", "AAD"],
-          indicators: [
-            "Red rash appearing after contact with substance",
-            "Intense itching",
-            "Swelling or tenderness in the affected area"
-          ],
-          causes: "Allergic or irritant reaction to soaps, detergents, cosmetics, or specific fabrics."
-        }
-      ]
-    };
+  // 1. Tinea Corporis (Ringworm) - Specific symptoms
+  if (lowerText.includes("ring") || lowerText.includes("circular") || lowerText.includes("clear center")) {
+    severity = "Moderate";
+    severityReason = "The circular morphology and clear center are classic signs of a fungal infection (Tinea Corporis), which requires targeted antifungal therapy to prevent spreading.";
+    conditions.push({
+      name: "Tinea Corporis (Ringworm)",
+      sources: ["Mayo Clinic", "DermNet NZ"],
+      indicators: ["Pruritic (itchy) red circular rash", "Clearer skin in the middle of the ring", "Slightly raised, expanding borders"],
+      causes: "Fungal infection spread by skin-to-skin contact or contact with contaminated items."
+    });
   }
 
-  if (lowerText.includes("acne") || lowerText.includes("bump") || lowerText.includes("pimple")) {
-    return {
-      severity: "Mild",
-      severityReason: "Mild to moderate acne is typically manageable with topical treatments but should be monitored to prevent scarring.",
-      conditions: [
-        {
-          name: "Acne Vulgaris",
-          sources: ["AAD", "NHS UK"],
-          indicators: [
-            "Comedones (blackheads/whiteheads)",
-            "Papules and pustules (pimple bumps)",
-            "Commonly on face, back, or chest"
-          ],
-          causes: "Excess oil (sebum) production, hair follicles clogged by oil and dead skin cells, and bacteria."
-        }
-      ]
-    };
+  // 2. Contact Dermatitis
+  if (lowerText.includes("soap") || lowerText.includes("detergent") || lowerText.includes("irritated after") || lowerText.includes("new product")) {
+    severity = "Moderate";
+    severityReason = "A reaction occurring after contact with a specific substance suggests an irritant or allergic response (Contact Dermatitis).";
+    conditions.push({
+      name: "Contact Dermatitis",
+      sources: ["Cleveland Clinic", "AAD"],
+      indicators: ["Red rash appearing after contact with substance", "Intense itching", "Swelling or tenderness in the affected area"],
+      causes: "Allergic or irritant reaction to external triggers like soaps, detergents, or cosmetics."
+    });
   }
 
-  // Default fallback
-  return {
-    severity: "Mild",
-    severityReason: "Symptoms are currently mild. Maintaining a simple skincare routine and monitoring for changes is advised.",
-    conditions: [
-      {
-        name: "General Skin Irritation / Xerosis",
-        sources: ["MedlinePlus"],
-        indicators: [
-          "Dry, flaky skin",
-          "Mild itching or tightness",
-          "Lack of visible lesion morphology"
-        ],
-        causes: "Environmental factors like dry air, hot water, or harsh soaps."
-      }
-    ]
-  };
+  // 3. Eczema (Atopic Dermatitis)
+  if (lowerText.includes("dry") || lowerText.includes("elbow") || lowerText.includes("knee") || lowerText.includes("chronic") || lowerText.includes("cracked")) {
+    severity = "Moderate";
+    severityReason = "Chronic dryness in joint flexures (elbows/knees) is indicative of Atopic Dermatitis, which requires long-term moisture management.";
+    conditions.push({
+      name: "Atopic Dermatitis (Eczema)",
+      sources: ["National Eczema Association", "NHS UK"],
+      indicators: ["Intense itching", "Dry, sensitive skin", "Inflamed patches in flexures (elbows, back of knees)"],
+      causes: "Combination of genetic factors leading to skin barrier dysfunction and environmental triggers."
+    });
+  }
+
+  // 4. Psoriasis
+  if (lowerText.includes("silvery") || lowerText.includes("thick") || lowerText.includes("plaque") || lowerText.includes("scaly")) {
+    severity = "Moderate";
+    severityReason = "Thick, scaly plaques with a silvery appearance may indicate Psoriasis, an autoimmune-related skin condition requiring specialized care.";
+    conditions.push({
+      name: "Psoriasis",
+      sources: ["Mayo Clinic", "AAD"],
+      indicators: ["Thick, red patches of skin covered with silvery scales", "Dry, cracked skin that may bleed", "Soreness or burning sensation"],
+      causes: "Immune system problem that causes skin cells to grow faster than usual, building up into scales."
+    });
+  }
+
+  // 5. Acne
+  if (lowerText.includes("acne") || lowerText.includes("pimple") || lowerText.includes("blackhead") || lowerText.includes("whitehead") || lowerText.includes("breakout")) {
+    severity = "Mild";
+    severityReason = "Mild to moderate acne is typically manageable with topical treatments but should be monitored to prevent scarring.";
+    conditions.push({
+      name: "Acne Vulgaris",
+      sources: ["AAD", "NHS UK"],
+      indicators: ["Comedones (blackheads/whiteheads)", "Papules and pustules", "Commonly on face, back, or chest"],
+      causes: "Excess oil production, clogged hair follicles, and bacteria."
+    });
+  }
+
+  // Fallback for general redness/itchiness if nothing else matched
+  if (conditions.length === 0 && (lowerText.includes("red") || lowerText.includes("itch"))) {
+    severity = "Moderate";
+    severityReason = "The presence of red itchy patches warrants examination to determine the exact cause and appropriate therapy.";
+    conditions.push({
+      name: "Non-Specific Skin Irritation",
+      sources: ["MedlinePlus"],
+      indicators: ["Redness", "Itchiness", "Irritation"],
+      causes: "Multiple potential triggers including environment or mild allergy."
+    });
+  }
+
+  // Default fallback if absolutely nothing matches
+  if (conditions.length === 0) {
+    conditions.push({
+      name: "General Skin Management",
+      sources: ["AAD"],
+      indicators: ["Mild irritation or dryness", "Lack of specific clinical signs"],
+      causes: "Environmental factors like dry air or harsh soaps."
+    });
+  }
+
+  return { severity, severityReason, conditions };
 }
 
 export function getMedications(conditionName: string): Medication[] {
   const name = conditionName.toLowerCase();
 
-  if (name.includes("tinea") || name.includes("fungal")) {
+  if (name.includes("tinea") || name.includes("ringworm")) {
     return [
       {
         name: "Clotrimazole 1% Cream",
-        brands: ["Candid", "Canesten", "Funginoc"],
+        brands: ["Candid", "Canesten"],
         type: "Topical Cream",
-        why: "Inhibits the growth of individual fungal cells by altering cell membrane permeability.",
-        dose: "Apply thin layer twice daily",
-        when: "After cleaning and drying the area",
+        why: "Antifungal medication that stops the growth of fungi.",
+        dose: "Apply twice daily for 2-4 weeks",
+        when: "To clean, dry skin",
         duration: "2-4 weeks",
         isOTC: true
-      },
-      {
-        name: "Fluconazole 150mg",
-        brands: ["Flucos", "Zocon"],
-        type: "Oral Tablet",
-        why: "Systemic antifungal for stubborn or widespread infections.",
-        dose: "1 tablet per week",
-        when: "With or without food",
-        duration: "Specify as per doctor's advice",
-        isOTC: false
       }
     ];
   }
 
-  if (name.includes("dermatitis") || name.includes("irritation")) {
+  if (name.includes("dermatitis") || name.includes("eczema")) {
     return [
       {
-        name: "Betamethasone Valerate",
-        brands: ["Betnovate", "Beta cream"],
+        name: "Hydrocortisone 1% Cream",
+        brands: ["Cortimax", "Lycort"],
         type: "Topical Steroid",
-        why: "Reduces inflammation, itching, and redness by suppressing the immune response.",
-        dose: "Apply morning and night",
+        why: "Reduces inflammation and itching associated with dermatitis.",
+        dose: "Apply a thin layer twice daily",
         when: "To affected areas only",
-        duration: "Max 1 week (on face) to 2 weeks (on body)",
-        isOTC: false
+        duration: "Max 1 week",
+        isOTC: true
       },
       {
-        name: "Cetirizine 10mg",
-        brands: ["Cetzine", "Alerid"],
-        type: "Oral Antihistamine",
-        why: "Blocks histamine receptors to reduce systemic itching and allergic response.",
-        dose: "1 tablet once daily",
-        when: "Preferably at night (may cause mild drowsiness)",
-        duration: "Until itch subsides",
+        name: "Liquid Paraffin & White Soft Paraffin",
+        brands: ["Aquasoft Max", "Oilatum"],
+        type: "Emollient",
+        why: "Restores skin barrier and prevents moisture loss.",
+        dose: "Apply liberally",
+        when: "After bath and before bed",
+        duration: "Continuous use",
         isOTC: true
+      }
+    ];
+  }
+
+  if (name.includes("psoriasis")) {
+    return [
+      {
+        name: "Coal Tar + Salicylic Acid Solution",
+        brands: ["Exitar", "Salytar"],
+        type: "Topical Solution",
+        why: "Coal tar reduces skin cell growth; Salicylic acid helps remove scales.",
+        dose: "Apply once daily at night",
+        when: "To thick plaques especially",
+        duration: "As directed by physician",
+        isOTC: false
       }
     ];
   }
@@ -137,21 +162,11 @@ export function getMedications(conditionName: string): Medication[] {
         name: "Benzoyl Peroxide 2.5%",
         brands: ["Benzac AC", "Oxy-5"],
         type: "Topical Gel",
-        why: "Bactericidal action against P. acnes and comedolytic effect.",
-        dose: "Apply once daily (night)",
-        when: "After washing face with a mild cleanser",
+        why: "Kills acne-causing bacteria and unclogs pores.",
+        dose: "Apply once daily at night",
+        when: "After washing with mild cleanser",
         duration: "Until cleared",
         isOTC: true
-      },
-      {
-        name: "Clindamycin Gel",
-        brands: ["Clindac A", "Dalacin T"],
-        type: "Topical Antibiotic",
-        why: "Antibacterial agent that reduces inflammation and bacteria count.",
-        dose: "Apply twice daily",
-        when: "Spot treatment",
-        duration: "4-6 weeks",
-        isOTC: false
       }
     ];
   }
@@ -159,12 +174,12 @@ export function getMedications(conditionName: string): Medication[] {
   return [
     {
       name: "White Soft Paraffin",
-      brands: ["Vaseline", "Aquasoft"],
+      brands: ["Vaseline"],
       type: "Emollient",
-      why: "Creates an occlusive barrier to prevent moisture loss.",
-      dose: "Apply as needed",
-      when: "Every 4-6 hours or after bath",
-      duration: "Continuous use is safe",
+      why: "Creates a protective barrier for dry skin.",
+      dose: "As needed",
+      when: "Every 4-6 hours",
+      duration: "Safe for long-term use",
       isOTC: true
     }
   ];
@@ -172,14 +187,15 @@ export function getMedications(conditionName: string): Medication[] {
 
 export function findMarketProducts(medName: string): ProductInfo[] {
   const name = medName.toLowerCase();
+  const encodeName = (q: string) => encodeURIComponent(q).replace(/%20/g, "+");
 
   if (name.includes("clotrimazole") || name.includes("candid")) {
     return [
       {
         name: "Candid Skin Cream 30g",
         price: "125",
-        platform: "1mg",
-        link: "https://www.1mg.com/otc/candid-cream-otc41935",
+        platform: "Tata 1mg",
+        link: "https://www.1mg.com/search/all?name=" + encodeName("Candid Cream"),
         rating: 4.5,
         reviews: 240,
         efficacy: 8.9,
@@ -189,45 +205,65 @@ export function findMarketProducts(medName: string): ProductInfo[] {
         name: "Canesten Clotrimazole 1%",
         price: "145",
         platform: "Apollo Pharmacy",
-        link: "https://www.apollopharmacy.in/otc/canesten-cream-30g",
+        link: "https://www.apollopharmacy.in/search?q=" + encodeName("Canesten Cream"),
         rating: 4.3,
         reviews: 120,
         efficacy: 8.7,
         isDoctorEndorsed: true
+      }
+    ];
+  }
+
+  if (name.includes("hydrocortisone")) {
+    return [
+      {
+        name: "Lycort 1% Cream 10g",
+        price: "45",
+        platform: "Tata 1mg",
+        link: "https://www.1mg.com/search/all?name=" + encodeName("Lycort Cream"),
+        rating: 4.4,
+        reviews: 150,
+        efficacy: 8.5,
+        isDoctorEndorsed: true
+      }
+    ];
+  }
+
+  if (name.includes("paraffin") || name.includes("aquasoft")) {
+    return [
+      {
+        name: "Aquasoft Max Cream 100g",
+        price: "345",
+        platform: "PharmEasy",
+        link: "https://pharmeasy.in/search/all?name=" + encodeName("Aquasoft Max Cream"),
+        rating: 4.7,
+        reviews: 320,
+        efficacy: 9.0,
+        isDoctorEndorsed: true
       },
       {
-        name: "Clocip Cream (Generic)",
-        price: "85",
-        platform: "Amazon.in",
-        link: "https://www.amazon.in/dp/B08XYZ",
-        rating: 4.0,
-        reviews: 320,
-        efficacy: 8.2,
+        name: "Vaseline Jelly 100g",
+        price: "150",
+        platform: "Amazon India",
+        link: "https://www.amazon.in/s?k=" + encodeName("Vaseline Petroleum Jelly"),
+        rating: 4.8,
+        reviews: 50000,
+        efficacy: 7.5,
         isDoctorEndorsed: false
       }
     ];
   }
 
-  if (name.includes("betamethasone") || name.includes("betnovate")) {
+  if (name.includes("coal tar") || name.includes("salytar")) {
     return [
       {
-        name: "Betnovate Cream 20g",
-        price: "55",
-        platform: "PharmEasy",
-        link: "https://pharmeasy.in/online-medicine-order/betnovate-cream-1175",
-        rating: 4.6,
-        reviews: 850,
-        efficacy: 8.5,
-        isDoctorEndorsed: true
-      },
-      {
-        name: "Betamil Cream",
-        price: "48",
-        platform: "1mg",
-        link: "https://www.1mg.com/medicines/betamil-cream-123",
+        name: "Salytar Solution 100ml",
+        price: "245",
+        platform: "Tata 1mg",
+        link: "https://www.1mg.com/search/all?name=" + encodeName("Salytar Solution"),
         rating: 4.2,
-        reviews: 50,
-        efficacy: 8.1,
+        reviews: 45,
+        efficacy: 8.8,
         isDoctorEndorsed: true
       }
     ];
@@ -238,36 +274,26 @@ export function findMarketProducts(medName: string): ProductInfo[] {
       {
         name: "Benzac AC 2.5% Gel 30g",
         price: "215",
-        platform: "1mg",
-        link: "https://www.1mg.com/otc/benzac-ac-2.5-gel-otc123",
+        platform: "Tata 1mg",
+        link: "https://www.1mg.com/search/all?name=" + encodeName("Benzac AC 2.5 Gel"),
         rating: 4.7,
         reviews: 1200,
         efficacy: 9.2,
-        isDoctorEndorsed: true
-      },
-      {
-        name: "Pernex AC 2.5 Gel",
-        price: "185",
-        platform: "Netmeds",
-        link: "https://www.netmeds.com/prescriptions/pernex-ac-2-5-gel",
-        rating: 4.4,
-        reviews: 450,
-        efficacy: 8.8,
         isDoctorEndorsed: true
       }
     ];
   }
 
-  // Generic fallback info
+  // Generic fallback if medication not explicitly listed
   return [
     {
-      name: "Vaseline Petroleum Jelly 100g",
-      price: "150",
-      platform: "Amazon.in",
-      link: "https://www.amazon.in/dp/B00V4L5S0S",
-      rating: 4.8,
-      reviews: 50000,
-      efficacy: 7.5,
+      name: "Generic Treatment Product",
+      price: "100",
+      platform: "Tata 1mg",
+      link: "https://www.1mg.com/search/all?name=" + encodeName(medName),
+      rating: 4.0,
+      reviews: 10,
+      efficacy: 7.0,
       isDoctorEndorsed: false
     }
   ];
